@@ -1,0 +1,17 @@
+.messages {
+    overflow: scroll;
+    max-height: 300px;
+}
+
+.messages > ol {
+    list-style: none;
+}
+
+.messages > ol > li {
+    margin: 0px;
+    padding: 0px;
+}
+
+.messages > ol > li.announcement {
+    color: #808080;
+}

@@ -1,0 +1,15 @@
+{
+  "name": "radar_example",
+  "version": "0.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "BSD-2-Clause",
+  "dependencies": {
+    "radar": "0.0.2",
+    "radar_client": "0.0.1"
+  }
+}

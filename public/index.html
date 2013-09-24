@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>ChatRoom</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet" media="screen">
+    <link href="/css/chat.css" rel="stylesheet" media="screen">
+</head>
+<body>
+<div class="container">
+
+    <div class="row">
+        <div class="span12">
+            <br/>
+        </div>
+    </div>
+    <div class="row">
+        <div class="span12">
+            <form class="form-horizontal">
+                <div class="control-group">
+                    <label class="control-label" for="username">Your name</label>
+                    <div class="controls">
+                        <input type="text" id="username" placeholder="your name">
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="row">
+        <div class="span8">
+            <div id="messagesContainer" class="messages">
+                <ol class="messageList" id="messages">
+
+                </ol>
+            </div>
+            <br/>
+            <input type="text" id="write" cols="60" rows="10"></input>
+        </div>
+        <div class="span4">
+            <textarea id="userlist" cols="60" rows="10" disabled></textarea>
+        </div>
+    </div>
+</div>
+
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script src="/js/radar_client.js"></script>
+<script src="/js/bootstrap.min.js"></script>
+<script>
+
+    var userId = Number(new Date().getTime() + "" + Math.floor(Math.random()*10000));
+
+//    Minilog.enable();
+    RadarClient.configure({
+        host: window.location.hostname,
+        port: 8000,
+
+        userId: userId,
+        userType: 0,
+        accountName: 'dev'
+    });
+
+    RadarClient.alloc('example', function() {
+
+
+        var usernames = {}
+        var connectedUsers = [];
+
+        function refreshUsers() {
+            $("#userlist").val("");
+            for(var i = 0 ; i < connectedUsers.length ; i++) {
+
+                var username = usernames[connectedUsers[i]] || connectedUsers[i];
+
+                $("#userlist").val($("#userlist").val() + username + "\n");
+            }
+        }
+
+        RadarClient.presence('chat/1').on(function(message) {
+            if(!message.op || !message.value) { return; }
+            for(var userId in message.value) {
+                if(!message.value.hasOwnProperty(userId)) { continue; }
+                var idx = connectedUsers.indexOf(userId)
+                if(idx === -1 && message.op == 'online') {
+                    connectedUsers.push(userId)
+                } else if(idx > -1 && message.op == 'offline') {
+                    connectedUsers.splice(idx, 1)
+                }
+            }
+            refreshUsers();
+        }).sync();
+
+        function printMessage(msg) {
+
+            var text = "";
+            if(msg.username) {
+
+                text += '<li class="chat">'
+
+                if(msg.username !== username) {
+                    text += msg.username + ": "
+                } else {
+                    text += "<b>"+msg.username + ": "+"</b>"
+
+                }
+
+                text += msg.message;
+
+                text += "</li>"
+
+            } else {
+                text += '<li class="announcement">'
+                text += msg.message;
+                text += "</li>"
+            }
+
+            if($("#messages").html()) {
+                $("#messages").html($("#messages").html() + text);
+            } else {
+                $("#messages").html(text);
+            }
+            $("#messagesContainer").prop("scrollTop", $("#messagesContainer").prop("scrollHeight"));
+        }
+
+        RadarClient.message('chat/1').on(function(message) {
+            printMessage(message.value);
+        }).sync();
+        RadarClient.presence('chat/1').set('online');
+
+        $('#write').bind('keypress', function(e) {
+            var code = (e.keyCode || e.which);
+            if(code == 13) { //Enter keycode
+                if($("#write").val()) {
+                    RadarClient.message('chat/1').publish({message: $("#write").val(), username: username});
+                    $("#write").val("");
+                }
+            }
+        });
+
+        RadarClient.status("username/1").on(function(message) {
+            usernames[message.key] = message.value || "anonymous";
+            refreshUsers();
+        });
+
+        RadarClient.status("username/1").subscribe(function() {
+
+        });
+
+        RadarClient.status("username/1").get(function(data) {
+            usernames = data.value;
+            refreshUsers();
+        });
+
+        $("#username").val(userId)
+        var username = userId;
+
+        $('#username').bind('keypress', function(e) {
+            var code = (e.keyCode || e.which);
+            if(code == 13) { //Enter keycode
+                updateUsername()
+                return false;
+            }
+        });
+        $('#username').focusout(function(e) {
+            updateUsername();
+        });
+
+        function updateUsername() {
+            if($("#username").val() && $("#username").val() != username) {
+                RadarClient.message('chat/1').publish({message: "["+username+"] --> ["+$("#username").val()+"]"});
+                username = $("#username").val();
+                RadarClient.status("username/1").set(username);
+            }
+            $("#write").focus();
+        }
+
+        $('#username').click(function() {
+            $(this).select();
+        });
+//        $('#username').focus(function() {
+//            $(this).select();
+//        });
+
+    });
+
+
+
+</script>
+</body>
+</html>
